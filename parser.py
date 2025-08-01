@@ -3,11 +3,13 @@ import pandas as pd
 import numpy as np
 
 def load_json(file_path):
+    '''Function to load JSON data from a file.'''
     with open(file_path, "r") as file:
         data = json.load(file)
     return data
 
 def parse_events(json_data):
+    '''Function to parse events from JSON data into a DataFrame.'''
     df = pd.json_normalize(json_data, sep=".")
     df["pass.length"] = df["pass.length"].astype(float)
     df["pass.angle"] = df["pass.angle"].astype(float)
@@ -28,7 +30,8 @@ def parse_events(json_data):
     return df
 
 def extract_tactics(df):
-    mask = df["type.name"].isin(["Starting XI"])#, "Tactical Shift", "Substitution"])
+    '''Function to extract tactics-related events from the DataFrame.'''
+    mask = df["type.name"].isin(["Starting XI"])
     starting11_df = df[mask]
     starting11_df["lineup"] = starting11_df["tactics.lineup"].copy()
     lineup_df = starting11_df.explode("lineup").reset_index(drop=True)
@@ -123,13 +126,10 @@ def extract_tactics(df):
             'substituted_in': None,  
             'substituted_out': None
         })
+            
     df_lineups = pd.DataFrame(team_states)
     df_players = df_lineups.explode("lineup").reset_index(drop=True)
     player_data = df_players["lineup"].apply(pd.Series)
     df_tactics_final = pd.concat([df_players.drop(columns=["lineup"]), player_data], axis=1)
     df_main_final = df[~df["type.name"].isin(["Starting XI", "Tactical Shift", "Substitution"])]
     return df_tactics_final, df_main_final
-
-data = load_json("data/raw/3750245.json")
-df = parse_events(data)
-df_tactics_final, df_main_final = extract_tactics(df)
