@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 
-def compute_heatmap(df, by='team.name', grid_size=8):
+def compute_heatmap(df, by='team_name', grid_size=8):
     '''Function to compute heatmaps for given DataFrame. '''
     heatmaps = {}
     xedges = np.linspace(0,100, grid_size+1)
@@ -32,13 +32,13 @@ def assign_third(y):
     else:
         return "final"
 
-def compute_channel_usage(df, by="team.name"):
+def _compute_channel_usage(df, by="team_name"):
     '''Function to compute channel usage based on x-coordinate.'''
     df = df.copy()
     df["channel"] = df["location_x"].apply(assign_channel)
     return df.groupby(["channel", by]).size().unstack(fill_value=0)
 
-def compute_third_usage(df, by="team.name"):
+def _compute_third_usage(df, by="team_name"):
     '''Function to compute third usage based on y-coordinate.'''
     df = df.copy()
     df["third"] = df["location_y"].apply(assign_third)
@@ -50,8 +50,8 @@ def _calculate_windowed_pass_flux(df_pass, grid_size=8):
     
     startsx = np.digitize(df_pass["location_x"], xbins) - 1
     startsy = np.digitize(df_pass["location_y"], ybins) - 1
-    endsx = np.digitize(df_pass["pass.end_location_x"], xbins) - 1
-    endsy = np.digitize(df_pass["pass.end_location_y"], ybins) - 1
+    endsx = np.digitize(df_pass["pass_end_location_x"], xbins) - 1
+    endsy = np.digitize(df_pass["pass_end_location_y"], ybins) - 1
 
     starts_flat = startsx * grid_size + startsy
     ends_flat = endsx * grid_size + endsy
@@ -67,19 +67,24 @@ def _calculate_windowed_pass_flux(df_pass, grid_size=8):
 
     return flux
 
-def compute_windowed_pass_flux(df, window_size=5, grid_size=8):
+def compute_windowed_metrics(df, window_size=15, grid_size=8):
+    '''Function to compute windowed pass fluxes.'''
     windowed_pass_fluxes = defaultdict(dict)
-    dfp = df[df["type.name"] == "Pass"].dropna(subset=["location_x", "location_y", "pass.end_location_x", "pass.end_location_y"]).copy()
+    dfp = df[df["type.name"] == "Pass"].dropna(subset=["location_x", "location_y", "pass_end_location_x", "pass_end_location_y"]).copy()
     dfp["time_block"] = dfp["minute"] // window_size
 
-    for (team_name, block_index), group in dfp.groupby(["team.name", "time_block"]):
+    for (team_name, block_index), group in dfp.groupby(["team_name", "time_block"]):
         flux = _calculate_windowed_pass_flux(group, grid_size)
+        channel = _compute_channel_usage(group)
+        third = _compute_third_usage(group)
 
         start_minute = block_index * window_size
         end_minute = start_minute + window_size - 1
 
         windowed_pass_fluxes[team_name][block_index] = {
-            "flux": flux, 
+            "flux": flux,
+            "channel": channel,
+            "third": third,
             "window": (start_minute, end_minute)
         }
 
@@ -95,5 +100,5 @@ def df_with_channel_and_third(df):
 def heatmap_minute(df, grid_size=8):
     '''Function to compute heatmap by minute with channel and third.'''
     df_with_channel_and_third = df_with_channel_and_third(df)
-    heatmap_by_minute = df_with_channel_and_third.groupby(['team.name', 'minute', 'channel', 'third']).size().unstack(fill_value=0)
+    heatmap_by_minute = df_with_channel_and_third.groupby(['team_name', 'minute', 'channel', 'third']).size().unstack(fill_value=0)
     return heatmap_by_minute

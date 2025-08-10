@@ -10,54 +10,44 @@ def parse_events(events_df):
     '''Function to parse events from JSON data into a DataFrame.'''
     df = events_df.copy()
     if "player" in df.columns:
-        df['player_id'] = df['player'].apply(lambda x: x.get("id") if isinstance(x,dict) else np.nan)
-        df['player_name'] = df['player'].apply(lambda x: x.get("name") if isinstance(x,dict) else np.nan)
+        df['player_name'] = df['player']
 
     if 'team' in df.columns:
-        df['team_id'] = df['team'].apply(lambda x: x.get('id') if isinstance(x, dict) else np.nan)
-        df['team_name'] = df['team'].apply(lambda x: x.get('name') if isinstance(x, dict) else np.nan)
+        df['team_name'] = df['team']
 
     if 'position' in df.columns:
         df['position_id'] = df['position'].apply(lambda x: x.get('id') if isinstance(x, dict) else np.nan)
         df['position_name'] = df['position'].apply(lambda x: x.get('name') if isinstance(x, dict) else np.nan)
 
     if "location" in df.columns:
-        df['location'] = df['location'].apply(lambda x: x if isinstance(x,list) else [np.nan, np.nan])
-        df[['location_x', 'location_y']] = pd.DataFrame(df['location'].tolist(), index=df.index)
+        df['location'] = df['location'].apply(lambda x: x if isinstance(x, list) else [np.nan, np.nan])
+        locations = df['location'].apply(pd.Series)
+        locations.columns = ['location_x', 'location_y']
+        df = pd.concat([df, locations], axis=1)
 
-    if 'pass' in df.columns:
-        df['pass.length'] = df['pass'].apply(lambda x: x.get('length') if isinstance(x,dict) else np.nan)
-        df['pass.angle'] = df['pass'].apply(lambda x: x.get('angle') if isinstance(x,dict) else np.nan)
-        df['pass.recepient_id'] = df['pass'].apply(lambda x: x.get('recipient', {}).get('id') if isinstance(x,dict) else np.nan)
-        df['pass.recepient_name'] = df['pass'].apply(lambda x: x.get('recipient', {}).get('name') if isinstance(x,dict) else np.nan)
-        df['pass.end_location'] = df['pass'].apply(lambda x: x.get('end_location') if isinstance(x,dict) else [np.nan, np.nan])
-        df['pass.end_location'] = df['pass.end_location'].apply(lambda x: x if isinstance(x,list) else [np.nan, np.nan])
-        df[['pass.end_location_x', 'pass.end_location_y']] = pd.DataFrame(df['pass.end_location'].tolist(), index=df.index)
+    if 'pass_end_location' in df.columns:
+        df['pass_end_location'] = df['pass_end_location'].apply(lambda x: x if isinstance(x, list) else [np.nan, np.nan])
+        pass_end_locs = df['pass_end_location'].apply(pd.Series)
+        pass_end_locs.columns = ['pass_end_location_x', 'pass_end_location_y']
+        df = pd.concat([df, pass_end_locs], axis=1)
    
-    if 'carry' in df.columns:
-        df['carry.length'] = df['carry'].apply(lambda x: x.get('length') if isinstance(x,dict) else np.nan)
-        df['carry.angle'] = df['carry'].apply(lambda x: x.get('angle') if isinstance(x,dict) else np.nan)
-        df['carry.recepient_id'] = df['carry'].apply(lambda x: x.get('recipient', {}).get('id') if isinstance(x,dict) else np.nan)
-        df['carry.recepient_name'] = df['carry'].apply(lambda x: x.get('recipient', {}).get('name') if isinstance(x,dict) else np.nan)
-        df['carry.end_location'] = df['carry'].apply(lambda x: x.get('end_location') if isinstance(x,dict) else [np.nan, np.nan])
-        df['carry.end_location'] = df['carry.end_location'].apply(lambda x: x if isinstance(x,list) else [np.nan, np.nan])
-        df[['carry.end_location_x', 'carry.end_location_y']] = pd.DataFrame(df['carry.end_location'].tolist(), index=df.index)
+    if 'carry_end_location' in df.columns:
+        df['carry_end_location'] = df['carry_end_location'].apply(lambda x: x if isinstance(x, list) else [np.nan, np.nan])
+        carry_end_locs = df['carry_end_location'].apply(pd.Series)
+        carry_end_locs.columns = ['carry_end_location_x', 'carry_end_location_y']
+        df = pd.concat([df, carry_end_locs], axis=1)
  
-    if 'goalkeeper' in df.columns:
-        df['goalkeeper.length'] = df['goalkeeper'].apply(lambda x: x.get('length') if isinstance(x,dict) else np.nan)
-        df['goalkeeper.angle'] = df['goalkeeper'].apply(lambda x: x.get('angle') if isinstance(x,dict) else np.nan)
-        df['goalkeeper.recepient_id'] = df['goalkeeper'].apply(lambda x: x.get('recipient', {}).get('id') if isinstance(x,dict) else np.nan)
-        df['goalkeeper.recepient_name'] = df['goalkeeper'].apply(lambda x: x.get('recipient', {}).get('name') if isinstance(x,dict) else np.nan)
-        df['goalkeeper.end_location'] = df['goalkeeper'].apply(lambda x: x.get('end_location') if isinstance(x,dict) else [np.nan, np.nan])
-        df['goalkeeper.end_location'] = df['goalkeeper.end_location'].apply(lambda x: x if isinstance(x,list) else [np.nan, np.nan])
-        df[['goalkeeper.end_location_x', 'goalkeeper.end_location_y']] = pd.DataFrame(df['goalkeeper.end_location'].tolist(), index=df.index)
+    if 'goalkeeper_end_location' in df.columns:
+        df['goalkeeper_end_location'] = df['goalkeeper_end_location'].apply(lambda x: x if isinstance(x, list) else [np.nan, np.nan])
+        gk_end_locs = df['goalkeeper_end_location'].apply(pd.Series)
+        gk_end_locs.columns = ['goalkeeper_end_location_x', 'goalkeeper_end_location_y']
+        df = pd.concat([df, gk_end_locs], axis=1)
     
-    if 'shot' in df.columns:
-        df['shot.length'] = df['shot'].apply(lambda x: x.get('length') if isinstance(x,dict) else np.nan)
-        df['shot.angle'] = df['shot'].apply(lambda x: x.get('angle') if isinstance(x,dict) else np.nan)
-        df['shot.end_location'] = df['shot'].apply(lambda x: x.get('end_location') if isinstance(x,dict) else [np.nan, np.nan])
-        df['shot.end_location'] = df['shot.end_location'].apply(lambda x: x if isinstance(x,list) else [np.nan, np.nan])
-        df[['shot.end_location_x', 'shot.end_location_y']] = pd.DataFrame(df['shot.end_location'].tolist(), index=df.index)
+    if 'shot_end_location' in df.columns:
+        df['shot_end_location'] = df['shot_end_location'].apply(lambda x: x if isinstance(x, list) else [np.nan, np.nan])
+        shot_end_locs = df['shot_end_location'].apply(pd.Series)
+        shot_end_locs.columns = ['shot_end_location_x', 'shot_end_location_y', 'shot_end_location_z']
+        df = pd.concat([df, shot_end_locs], axis=1)
 
     if 'type' in df.columns and 'type.name' not in df.columns:
         df.rename(columns={'type': 'type.name'}, inplace=True)
