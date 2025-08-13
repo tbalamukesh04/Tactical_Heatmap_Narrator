@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from collections import defaultdict
+from scipy.sparse import coo_matrix
 
 def compute_heatmap(df, by='team_name', grid_size=8):
     '''Function to compute heatmaps for given DataFrame. '''
@@ -44,10 +45,10 @@ def _compute_third_usage(df, by="team_name"):
     df["third"] = df["location_y"].apply(assign_third)
     return df.groupby(["third", by]).size().unstack(fill_value=0)    
 
-def _calculate_windowed_pass_flux(df_pass, grid_size=8):
-    xbins = np.linspace(0, 100, grid_size + 1)
-    ybins = np.linspace(0, 100, grid_size + 1)
-    
+def _calculate_flux_matrix(df_pass, grid_size=8):
+    xbins = np.linspace(0, 100, grid_size+1)
+    ybins = np.linspace(0, 100, grid_size+1)
+
     startsx = np.digitize(df_pass["location_x"], xbins) - 1
     startsy = np.digitize(df_pass["location_y"], ybins) - 1
     endsx = np.digitize(df_pass["pass_end_location_x"], xbins) - 1
@@ -58,14 +59,15 @@ def _calculate_windowed_pass_flux(df_pass, grid_size=8):
 
     max_index = grid_size * grid_size
     mask = (starts_flat >= 0) & (starts_flat < max_index) & (ends_flat >= 0) & (ends_flat < max_index)
+
     starts_filtered = starts_flat[mask]
     ends_filtered = ends_flat[mask]
 
-    flux = np.zeros((max_index, max_index), dtype=int)
+    data = np.ones(len(starts_filtered), dtype=int)
+    flux_coo = coo_matrix((data, (starts_filtered, ends_filtered)), shape=(max_index, max_index))
+    flux_csr = flux_coo.tocsr()
 
-    np.add.at(flux, (starts_filtered, ends_filtered), 1)
-
-    return flux
+    return flux_csr
 
 def compute_windowed_metrics(df, window_size=15, grid_size=8):
     '''Function to compute windowed pass fluxes.'''
@@ -74,7 +76,7 @@ def compute_windowed_metrics(df, window_size=15, grid_size=8):
     dfp["time_block"] = dfp["minute"] // window_size
 
     for (team_name, block_index), group in dfp.groupby(["team_name", "time_block"]):
-        flux = _calculate_windowed_pass_flux(group, grid_size)
+        flux = _calculate_flux_matrix(group, grid_size)
         channel = _compute_channel_usage(group)
         third = _compute_third_usage(group)
 
